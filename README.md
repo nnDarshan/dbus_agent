@@ -7,9 +7,9 @@ Install
 1. Edit dbus_agent.service file to assign the following variables: ExecStart, ExecStop, ExecReload the location of dbus_agent.py
 Eg:
 
-ExecStart=/root/DbusAgent/dbus_agent.py start
-ExecStop=/root/DbusAgent/dbus_agent.py stop
-ExecReload=/root/DbusAgent/dbus_agent.py reload
+      ExecStart=/root/DbusAgent/dbus_agent.py start
+      ExecStop=/root/DbusAgent/dbus_agent.py stop
+      ExecReload=/root/DbusAgent/dbus_agent.py reload
 
 2. Copy the edited script to location: /usr/lib/systemd/system/
 
@@ -17,4 +17,4 @@ ExecReload=/root/DbusAgent/dbus_agent.py reload
 
 4. Start the daemon:
 
-service dbus_agent start
+      service dbus_agent start
