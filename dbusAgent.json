@@ -1,0 +1,14 @@
+{
+    "gluster":
+    {
+	"enabled": 0,"methods":{"volume_add": 1, "volume_del": 1}
+    },
+    "ceph":
+    {
+	"enabled": 0,"methods": {}
+    },
+    "general":
+    {
+	"enabled": 1,"methods": {"disk_add": 1, "disk_remove": 0}
+    }
+}

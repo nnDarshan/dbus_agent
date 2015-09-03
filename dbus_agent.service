@@ -1,0 +1,11 @@
+[Unit]
+Description=Dbus agent to push signals
+
+[Service]
+Type=forking
+PIDFile=/tmp/dbus-agent.pid
+ExecStart=/root/DbusAgent/dbus_agent.py start
+ExecStop=/root/DbusAgent/dbus_agent.py stop
+ExecReload=/root/DbusAgent/dbus_agent.py reload
+
+KillMode=process
