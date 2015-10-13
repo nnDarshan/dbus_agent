@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import signal
-import sys, time
+import sys
+import time
 from daemon import Daemon
 import threading
 import time
@@ -14,38 +15,43 @@ import salt.client
 RUN = True
 current_methods = {}
 
+
 def mainSource(loop):
     loop.run()
-    
-def update_listener(cb,bus):
+
+
+def update_listener(cb, bus):
     global current_methods
     enabled_methods = callBack.get_enabled_methods(cb)
     poplist = []
     # unregister the signals that are not in the latest config file
     for key, value in current_methods.iteritems():
-        if not enabled_methods.has_key(key):
+        if key not in enabled_methods:
             value.remove()
             poplist.append(key)
     for el in poplist:
         current_methods.pop(el)
 
     # register the signals that are newly added in the latest config file
-    for key,value  in enabled_methods.iteritems():
-        if not current_methods.has_key(key):
+    for key, value in enabled_methods.iteritems():
+        if key not in current_methods:
             signalMatch = bus.add_signal_receiver(
                 value,
                 signal_name=cb_info[key]['signal_name'],
-                dbus_interface = cb_info[key]['dbus_interface'],
-                bus_name = cb_info[key]['bus_name'],
-                path = cb_info[key]['path']
+                dbus_interface=cb_info[key]['dbus_interface'],
+                bus_name=cb_info[key]['bus_name'],
+                path=cb_info[key]['path'],
+                path_keyword='path'
             )
-            current_methods.update({key:signalMatch})
+            current_methods.update({key: signalMatch})
 
-            
-def signalHandler(loop,cb,bus):
-    # signal handler
+
+def signalHandler(loop, cb, bus):
+    """
+    signal handler to handle sighup and sigterm signals
+    """
     def sighup_handler(signal, frame):
-        update_listener(cb,bus)
+        update_listener(cb, bus)
 
     def sigterm_handler(signal, frame):
         loop.quit()
@@ -58,22 +64,42 @@ def signalHandler(loop,cb,bus):
 
 
 class MyDaemon(Daemon):
+    """
+    this is a class derived from daemon class, and here
+    we are overriding the run method to suit this daemon
+    """
     def run(self):
-        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        # Using Dbus-python's default mainloop to listen to the events
+        DBusGMainLoop(set_as_default=True)
         bus = dbus.SystemBus()
+
+        # creating a salt caller object, this is used to push events using
+        # salt's eventing framework
         caller = salt.client.Caller()
+
         cb = callBack.CallBack(caller)
-        update_listener(cb,bus)
+
+        # this initializes/updates the interested signals
+        # (read from config file) to be listened brom the bus
+        update_listener(cb, bus)
+
         loop = glib.MainLoop()
         glib.threads_init()
-        t = threading.Thread(target = mainSource, args = (loop,))
-        t.start()
-        while RUN:
-            signalHandler(loop,cb,bus)
 
-            
+        # create a thread to run the main loop which will listen to the dbus
+        # and push the events to salt-master
+        t = threading.Thread(target=mainSource, args=(loop,))
+        t.start()
+
+        # this will continue and listent to external signals (sighup,sigterm)
+        # if sighup, the signals to be listened is reread from the config file
+        # if sigterm, the daemon will be terminated
+        while RUN:
+            signalHandler(loop, cb, bus)
+
+
 if __name__ == "__main__":
-    # this is just a temp location to be modified later
+    # /tmp/fbus-agent.pid is just a temporary location to be modified later
     daemon = MyDaemon('/tmp/dbus-agent.pid')
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
